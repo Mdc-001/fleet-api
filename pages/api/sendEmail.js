@@ -5,31 +5,44 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
-  const { to, subject, text } = req.body;
+  // Token validation
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.replace("Bearer ", "");
+  if (token !== process.env.API_SECRET) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
+  const { to, cc, subject, text } = req.body;
+  if (!to || !subject || !text) {
+    return res.status(400).json({ success: false, error: "Missing required fields" });
+  }
 
   try {
-    // Configure transporter with your SMTP service
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,   // e.g. "smtp.gmail.com"
-      port: 587,
-      secure: false,                 // true for port 465, false for 587
+      host: process.env.SMTP_HOST,   // e.g. "mail.madacan.com" or "smtp.gmail.com"
+      port: 587,                     // TLS port
+      secure: false,                 // true only for port 465
       auth: {
-        user: process.env.SMTP_USER, // your email
-        pass: process.env.SMTP_PASS, // your password or app password
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        minVersion: "TLSv1.2",       // enforce strong TLS
+        rejectUnauthorized: true     // don’t accept weak certs
+      }
     });
 
-    // Send the email
     await transporter.sendMail({
-      from: process.env.SMTP_USER,
+      from: `"Fleet App" <${process.env.EMAIL_USER}>`,
       to,
+      cc,
       subject,
       text,
     });
 
-    res.status(200).json({ success: true, message: "Email sent successfully" });
+    return res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (error) {
-    console.error("Email error:", error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Nodemailer error:", error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
