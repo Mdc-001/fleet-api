@@ -1,9 +1,12 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { to, subject, message } = req.body;
-    console.log("→ Incoming request:", { to, subject });
+  if (req.method === "POST") {
+    const { plate, driverName, serviceProvider, billingGroupId } = req.body;
+    console.log("→ Incoming request:", { plate, driverName, serviceProvider, billingGroupId });
+
+    // For testing: always send to MichelJR
+    const toRecipients = ["MichelJR@madacan.com"];
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -11,22 +14,32 @@ export default async function handler(req, res) {
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS,
       },
       tls: {
         minVersion: "TLSv1.2",
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       },
       logger: true,
-      debug: true
+      debug: true,
     });
 
     try {
       const info = await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to,
-        subject,
-        text: message
+        from: '"Fleet App" <noreply@madacan.com>',
+        to: toRecipients,
+        subject: `New Request for ${plate}`,
+        text: `Hello Michel,
+
+A new request has been created.
+
+Plate: ${plate}
+Driver: ${driverName}
+Service Provider: ${serviceProvider}
+Billing Group: ${billingGroupId || "N/A"}
+
+Thanks,
+Fleet Management System`,
       });
 
       console.log("✓ Email sent successfully:", info.response);
