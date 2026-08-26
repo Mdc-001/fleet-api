@@ -1,46 +1,39 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === 'POST') {
+    const { to, subject, message } = req.body;
 
-  const { requestId, plate, driverName, serviceProvider, billingGroupId } = req.body;
-
-  try {
+    // Configure transporter with your Vercel environment variables
     const transporter = nodemailer.createTransport({
-      host: "mail.madacan.com",
-      port: 587, // use 465 if SSL
-      secure: false, // true if port 465
+      host: process.env.SMTP_HOST,   // e.g. mail.madacan.com
+      port: process.env.SMTP_PORT,   // usually 587 for TLS
+      secure: false,                 // true if port 465
       auth: {
-        user: "QUANTUMI\\applications",
-        pass: process.env.EMAIL_PASS, // store password in Vercel env
+        user: process.env.EMAIL_USER, // your email account
+        pass: process.env.EMAIL_PASS  // your email password or app password
       },
       tls: {
         minVersion: "TLSv1.2",
-        rejectUnauthorized: false,
+        rejectUnauthorized: false
       },
+      logger: true,   // enable logging
+      debug: true     // show SMTP handshake in console
     });
 
-    const info = await transporter.sendMail({
-      from: "noreply@madacan.com",
-      to: "scm-team@example.com",
-      subject: "🛞 New Customer Service Request",
-      text: `Request ID: ${requestId}
-Plate: ${plate}
-Driver: ${driverName}
-Service Provider: ${serviceProvider}
-Billing Group: ${billingGroupId}`,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Email sent successfully",
-      id: info.messageId,
-    });
-  } catch (error) {
-    console.error("❌ Email sending failed:", error);
-    res.status(500).json({ error: "Failed to send email" });
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER, // sender address
+        to,                           // recipient(s)
+        subject,
+        text: message
+      });
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("✗ Email sending failed:", error);
+      res.status(500).json({ error: "Failed to send email" });
+    }
+  } else {
+    res.status(405).json({ error: "Method not allowed" });
   }
 }
