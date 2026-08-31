@@ -2,11 +2,16 @@ import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    const { billingGroupId, requests } = req.body;
-    console.log("→ Incoming email payload:", { billingGroupId, count: requests.length });
+    const { billingGroupId, requests, scmApproval } = req.body;
+    console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval });
+
+    // 🔧 Unwrap nested requests array if present
+    const allRequests = Array.isArray(requests)
+      ? requests.flatMap(r => (r.requests ? r.requests : [r]))
+      : [];
 
     // Build HTML table rows
-    const rows = requests.map(r => `
+    const rows = allRequests.map(r => `
       <tr>
         <td>${r.plate || "N/A"}</td>
         <td>${r.driverName || "N/A"}</td>
@@ -14,16 +19,33 @@ export default async function handler(req, res) {
         <td style="color:${r.status === "pending" ? "red" : "green"};">
           ${r.status || "N/A"}
         </td>
-        <td>${r.repairDate ? new Date(r.repairDate._seconds * 1000).toLocaleDateString("en-GB") : "N/A"}</td>
+        <td>${
+          r.repairDate
+            ? (r.repairDate._seconds
+                ? new Date(r.repairDate._seconds * 1000).toLocaleDateString("en-GB")
+                : new Date(r.repairDate).toLocaleDateString("en-GB"))
+            : "N/A"
+        }</td>
       </tr>
     `).join("");
 
+    // 🔧 Subject and intro text differ for SCM approval
+    const subject = scmApproval
+      ? `SCM Approval - Batch ${billingGroupId}`
+      : billingGroupId
+        ? `Grouped Tire Requests - Batch ${billingGroupId}`
+        : "New Tire Request";
+
+    const introText = scmApproval
+      ? `All requests under batch <strong>${billingGroupId}</strong> have been approved by SCM.`
+      : billingGroupId
+        ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
+        : "Here is the new Tire request:";
+
     const htmlBody = `
-      <h2>${billingGroupId ? `Grouped Tire Requests - Batch ${billingGroupId}` : "Single Tire Request"}</h2>
+      <h2>${subject}</h2>
       <p>Hello team,</p>
-      <p>${billingGroupId 
-        ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:` 
-        : "Here is the new Tire request:"}</p>
+      <p>${introText}</p>
       <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%;">
         <thead style="background-color: #f2f2f2;">
           <tr>
@@ -62,9 +84,7 @@ export default async function handler(req, res) {
       const info = await transporter.sendMail({
         from: '"Fleet App" <noreply@madacan.com>',
         to: "MichelJR@madacan.com", // fixed recipient for testing
-        subject: billingGroupId 
-          ? `Grouped Tire Requests - Batch ${billingGroupId}` 
-          : "New Tire Request",
+        subject,
         html: htmlBody,
       });
 
