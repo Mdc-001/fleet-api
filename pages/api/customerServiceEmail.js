@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     ? `SCM Approval Request – Waiting Final Approval (Batch ${billingGroupId})`
     : finalApproval
       ? `Final Approval Confirmation – Batch ${billingGroupId}`
-      : billingBatchId
+      : billingGroupId
         ? `Grouped Tire Requests - Batch ${billingGroupId}`
         : "New Tire Request";
 
@@ -69,6 +69,18 @@ export default async function handler(req, res) {
     <p>Thanks,<br/>Fleet Management System</p>
   `;
 
+  // 🔧 Recipients based on stage
+  let toRecipients = [];
+  let ccRecipients = [];
+
+  if (scmApproval || finalApproval) {
+    toRecipients = ["MialyR@madacan.com", "Nirina@madacan.com"];
+    ccRecipients = ["AngeloG@madacan.com", "SolofonirinaA@madacan.com", "micheljr@madacan.com"];
+  } else {
+    toRecipients = ["MialyR@madacan.com", "AngeloG@madacan.com", "SolofonirinaA@madacan.com"];
+    ccRecipients = ["micheljr@madacan.com"];
+  }
+
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
@@ -88,7 +100,8 @@ export default async function handler(req, res) {
   try {
     const info = await transporter.sendMail({
       from: '"Fleet App" <noreply@madacan.com>',
-      to: "MichelJR@madacan.com", // fixed recipient for now
+      to: toRecipients.join(", "),
+      cc: ccRecipients.join(", "),
       subject,
       html: htmlBody,
     });
