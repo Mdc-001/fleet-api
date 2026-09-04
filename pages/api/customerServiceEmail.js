@@ -5,8 +5,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { billingGroupId, requests = [], scmApproval } = req.body;
-  console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval });
+  const { billingGroupId, requests = [], scmApproval, finalApproval } = req.body;
+  console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval, finalApproval });
 
   const allRequests = Array.isArray(requests)
     ? requests.flatMap(r => (r.requests ? r.requests : [r]))
@@ -30,19 +30,23 @@ export default async function handler(req, res) {
     </tr>
   `).join("");
 
-  // 🔧 Subject line adjusted for SCM approval
+  // 🔧 Subject line
   const subject = scmApproval
     ? `SCM Approval Request – Waiting Final Approval (Batch ${billingGroupId})`
-    : billingGroupId
-      ? `Grouped Tire Requests - Batch ${billingGroupId}`
-      : "New Tire Request";
+    : finalApproval
+      ? `Final Approval Confirmation – Batch ${billingGroupId}`
+      : billingBatchId
+        ? `Grouped Tire Requests - Batch ${billingGroupId}`
+        : "New Tire Request";
 
-  // 🔧 Intro text adjusted for SCM approval
+  // 🔧 Intro text
   const introText = scmApproval
     ? `All requests under batch <strong>${billingGroupId}</strong> have been approved by SCM.<br/><strong>Waiting for final approval</strong>`
-    : billingGroupId
-      ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
-      : "Here is the new Tire request:";
+    : finalApproval
+      ? `All requests under batch <strong>${billingGroupId}</strong> have been <strong>Final Approved</strong>.`
+      : billingGroupId
+        ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
+        : "Here is the new Tire request:";
 
   const htmlBody = `
     <h2>${subject}</h2>
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
   try {
     const info = await transporter.sendMail({
       from: '"Fleet App" <noreply@madacan.com>',
-      to: "MichelJR@madacan.com", // fixed recipient for testing
+      to: "MichelJR@madacan.com", // fixed recipient for now
       subject,
       html: htmlBody,
     });
