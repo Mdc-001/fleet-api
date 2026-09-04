@@ -30,14 +30,16 @@ export default async function handler(req, res) {
     </tr>
   `).join("");
 
+  // 🔧 Subject line adjusted for SCM approval
   const subject = scmApproval
-    ? `SCM Approval - Batch ${billingGroupId}`
+    ? `SCM Approval Request – Waiting Final Approval (Batch ${billingGroupId})`
     : billingGroupId
       ? `Grouped Tire Requests - Batch ${billingGroupId}`
       : "New Tire Request";
 
+  // 🔧 Intro text adjusted for SCM approval
   const introText = scmApproval
-    ? `All requests under batch <strong>${billingGroupId}</strong> have been approved by SCM.`
+    ? `All requests under batch <strong>${billingGroupId}</strong> have been approved by SCM.<br/><strong>Waiting for final approval</strong>`
     : billingGroupId
       ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
       : "Here is the new Tire request:";
