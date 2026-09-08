@@ -75,10 +75,10 @@ export default async function handler(req, res) {
 
   if (scmApproval || finalApproval) {
     toRecipients = ["MialyR@madacan.com", "Nirina@madacan.com"];
-    ccRecipients = ["AngeloG@madacan.com", "SolofonirinaA@madacan.com", "micheljr@madacan.com"];
+    ccRecipients = ["AngeloG@madacan.com", "SolofonirinaA@madacan.com", "micheljr@madacan.com","CedricA@madacan.com"];
   } else {
     toRecipients = ["MialyR@madacan.com", "AngeloG@madacan.com", "SolofonirinaA@madacan.com"];
-    ccRecipients = ["micheljr@madacan.com"];
+    ccRecipients = ["micheljr@madacan.com","CedricA@madacan.com"];
   }
 
   const transporter = nodemailer.createTransport({
