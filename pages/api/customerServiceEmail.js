@@ -5,8 +5,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { billingGroupId, requests = [], scmApproval, finalApproval } = req.body;
-  console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval, finalApproval });
+  const { billingGroupId, requests = [], scmApproval, finalApproval, purchaseFileUrl, proformaFileUrl } = req.body;
+  console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval, finalApproval, purchaseFileUrl, proformaFileUrl });
 
   const allRequests = Array.isArray(requests)
     ? requests.flatMap(r => (r.requests ? r.requests : [r]))
@@ -48,6 +48,7 @@ export default async function handler(req, res) {
         ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
         : "Here is the new Tire request:";
 
+  // 🔧 Email body with file links
   const htmlBody = `
     <h2>${subject}</h2>
     <p>Hello team,</p>
@@ -66,6 +67,16 @@ export default async function handler(req, res) {
         ${rows}
       </tbody>
     </table>
+
+    <p>
+      <strong>Purchase Request:</strong> 
+      ${purchaseFileUrl ? `<a href="${purchaseFileUrl}" target="_blank">View File</a>` : "Not uploaded"}
+    </p>
+    <p>
+      <strong>Proforma Invoice:</strong> 
+      ${proformaFileUrl ? `<a href="${proformaFileUrl}" target="_blank">View File</a>` : "Not uploaded"}
+    </p>
+
     <p>Thanks,<br/>Fleet Management System</p>
   `;
 
