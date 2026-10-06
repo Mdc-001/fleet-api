@@ -2,10 +2,59 @@ import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { billingGroupId, requests = [], scmApproval, finalApproval, purchaseFileUrl, proformaFileUrl } = req.body;
+  const body = req.body || {};
+  const hasGenericMailField = ["to", "cc", "subject", "message"]
+    .some((key) => Object.prototype.hasOwnProperty.call(body, key));
+
+  const createTransporter = () => nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: Number(process.env.SMTP_PORT || 587) === 465,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      minVersion: "TLSv1.2",
+      rejectUnauthorized: false,
+    },
+    logger: true,
+    debug: true,
+  });
+
+  // Generic mail contract used by Firebase and Postman.
+  if (hasGenericMailField) {
+    const { to, cc, subject, message } = body;
+    const toRecipients = (Array.isArray(to) ? to : [to])
+      .filter((email) => typeof email === "string" && email.trim());
+    const ccRecipients = (Array.isArray(cc) ? cc : cc ? [cc] : [])
+      .filter((email) => typeof email === "string" && email.trim());
+
+    if (!toRecipients.length || typeof subject !== "string" || typeof message !== "string") {
+      return res.status(400).json({ error: "Expected to, subject, and message" });
+    }
+
+    try {
+      const info = await createTransporter().sendMail({
+        from: '"Fleet App" <noreply@madacan.com>',
+        to: toRecipients,
+        ...(ccRecipients.length ? { cc: ccRecipients } : {}),
+        subject,
+        text: message,
+      });
+      console.log("✓ Email sent successfully:", info.response);
+      return res.status(200).json({ success: true, response: info.response });
+    } catch (error) {
+      console.error("✗ Email sending failed:", error.message);
+      return res.status(500).json({ error: "Failed to send email", details: error.message });
+    }
+  }
+
+  const { billingGroupId, requests = [], scmApproval, finalApproval, purchaseFileUrl, proformaFileUrl } = body;
   console.log("→ Incoming email payload:", { billingGroupId, count: requests?.length, scmApproval, finalApproval, purchaseFileUrl, proformaFileUrl });
 
   const allRequests = Array.isArray(requests)
@@ -92,21 +141,7 @@ export default async function handler(req, res) {
     ccRecipients = ["micheljr@madacan.com","CedricA@madacan.com"];
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      minVersion: "TLSv1.2",
-      rejectUnauthorized: false,
-    },
-    logger: true,
-    debug: true,
-  });
+  const transporter = createTransporter();
 
   try {
     const info = await transporter.sendMail({
