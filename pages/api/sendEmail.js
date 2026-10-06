@@ -19,6 +19,7 @@ export default async function handler(req, res) {
 
   const { to, cc, subject, text, html } = req.body || {};
   const toRecipients = asAddressList(to);
+  const ccRecipients = asAddressList(cc);
   if (!toRecipients.length || typeof subject !== "string" || (!text && !html)) {
     return res.status(400).json({ error: "Expected to, subject, and text or html" });
   }
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     const [info] = await sendgrid.send({
       from: '"Fleet App" <noreply@madacan.com>',
       to: toRecipients,
-      cc: asAddressList(cc),
+      ...(ccRecipients.length ? { cc: ccRecipients } : {}),
       subject,
       ...(text ? { text } : {}),
       ...(html ? { html } : {}),
