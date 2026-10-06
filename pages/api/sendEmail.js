@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import sendgrid from "@sendgrid/mail";
 
 const asAddressList = (value) => {
   if (!value) return [];
@@ -23,21 +23,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Expected to, subject, and text or html" });
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "mail.madacan.com",
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: Number(process.env.SMTP_PORT || 587) === 465,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      minVersion: "TLSv1.2",
-    },
-  });
+  if (!process.env.SENDGRID_API_KEY) {
+    console.error("SENDGRID_API_KEY is not configured");
+    return res.status(500).json({ error: "Email service is not configured" });
+  }
 
   try {
-    const info = await transporter.sendMail({
+    sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+    const [info] = await sendgrid.send({
       from: '"Fleet App" <noreply@madacan.com>',
       to: toRecipients,
       cc: asAddressList(cc),
@@ -45,7 +38,7 @@ export default async function handler(req, res) {
       ...(text ? { text } : {}),
       ...(html ? { html } : {}),
     });
-    return res.status(200).json({ success: true, messageId: info.messageId });
+    return res.status(200).json({ success: true, messageId: info.headers?.["x-message-id"] });
   } catch (error) {
     console.error("Fleet email delivery failed:", error.message);
     return res.status(502).json({ error: "Email delivery failed" });
