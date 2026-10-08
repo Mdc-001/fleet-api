@@ -66,9 +66,6 @@ export default async function handler(req, res) {
       <td>${r.plate || "N/A"}</td>
       <td>${r.driverName || "N/A"}</td>
       <td>${r.serviceProvider || "N/A"}</td>
-      <td style="color:${r.status === "pending" ? "red" : "green"};">
-        ${r.status || "N/A"}
-      </td>
       <td>${
         r.repairDate
           ? (r.repairDate._seconds
@@ -108,7 +105,6 @@ export default async function handler(req, res) {
           <th>Plate</th>
           <th>Driver</th>
           <th>Service Provider</th>
-          <th>Status</th>
           <th>Repair Date</th>
         </tr>
       </thead>
