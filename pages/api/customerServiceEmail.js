@@ -77,22 +77,14 @@ export default async function handler(req, res) {
   `).join("");
 
   // 🔧 Subject line
-  const subject = scmApproval
-    ? `SCM Approval Request – Waiting Final Approval (Batch ${billingGroupId})`
-    : finalApproval
-      ? `Final Approval Confirmation – Batch ${billingGroupId}`
-      : billingGroupId
-        ? `Grouped Tire Requests - Batch ${billingGroupId}`
-        : "New Tire Request";
+  const subject = billingGroupId
+    ? `Grouped Tire Requests - Batch ${billingGroupId}`
+    : "New Tire Request";
 
   // 🔧 Intro text
-  const introText = scmApproval
-    ? `All requests under batch <strong>${billingGroupId}</strong> have been approved by SCM.<br/><strong>Waiting for final approval</strong>`
-    : finalApproval
-      ? `All requests under batch <strong>${billingGroupId}</strong> have been <strong>Final Approved</strong>.`
-      : billingGroupId
-        ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
-        : "Here is the new Tire request:";
+  const introText = billingGroupId
+    ? `Here are the Tire requests for batch <strong>${billingGroupId}</strong>:`
+    : "Here is the new Tire request:";
 
   // 🔧 Email body with file links
   const htmlBody = `
